@@ -705,6 +705,96 @@
       font-size: 0.88rem;
     }
 
+    /* ---------- AUTH BAR ---------- */
+    #auth-bar {
+      position: fixed;
+      top: 16px;
+      left: 16px;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .btn-google {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 14px;
+      background: #fff;
+      color: #3c4043;
+      border: 1px solid #dadce0;
+      border-radius: 8px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: none;
+      transition: box-shadow 0.15s;
+    }
+
+    .btn-google:hover { box-shadow: 0 1px 6px rgba(0,0,0,0.2); }
+
+    .btn-google svg { width: 16px; height: 16px; flex-shrink: 0; }
+
+    .auth-user {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .auth-avatar {
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 2px solid var(--surface2);
+    }
+
+    .auth-avatar-placeholder {
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      background: var(--accent);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      font-weight: 700;
+      color: #fff;
+      flex-shrink: 0;
+    }
+
+    .auth-name {
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--text);
+      max-width: 100px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .auth-history-link {
+      font-size: 0.78rem;
+      color: var(--accent);
+      text-decoration: none;
+      padding: 4px 8px;
+      border-radius: 6px;
+      background: rgba(255,107,53,0.1);
+      transition: background 0.15s;
+    }
+
+    .auth-history-link:hover { background: rgba(255,107,53,0.2); }
+
+    .btn-add-friend {
+      background: rgba(74, 222, 128, 0.1);
+      color: var(--success);
+      border: 1px solid rgba(74, 222, 128, 0.3) !important;
+    }
+
+    .btn-add-friend:hover { background: rgba(74, 222, 128, 0.18); }
+    .btn-add-friend:disabled { opacity: 0.5; cursor: default; }
+
     /* ---------- TOAST ---------- */
     #toast {
       position: fixed;
@@ -729,6 +819,26 @@
   </style>
 </head>
 <body>
+
+  <!-- Auth bar (top-left) -->
+  <div id="auth-bar">
+    <div id="auth-logged-out" class="hidden">
+      <a href="/auth/google" class="btn-google">
+        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+          <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+          <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/>
+          <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+        </svg>
+        Sign in
+      </a>
+    </div>
+    <div id="auth-logged-in" class="hidden auth-user">
+      <div id="auth-avatar-wrap"></div>
+      <span id="auth-display-name" class="auth-name"></span>
+      <a href="/history.html" class="auth-history-link">History</a>
+    </div>
+  </div>
 
   <!-- Online badge -->
   <div id="online-badge">
@@ -842,6 +952,9 @@
       <button class="btn btn-reconnect" id="btn-reconnect" style="display:none;" onclick="doReconnect()">
         ↩️ Reconnect (<span id="reconnect-countdown">60</span>s)
       </button>
+      <button class="btn btn-add-friend hidden" id="btn-add-friend" onclick="addFriend()">
+        + Add as Friend
+      </button>
       <button class="btn btn-primary" onclick="findNew()">⏭️ Find New నెస్తమి</button>
     </div>
 
@@ -921,6 +1034,11 @@
     // typing debounce
     let typingTimeout = null;
 
+    // auth state
+    let currentUser = null;   // { id, display_name, avatar }
+    let currentSessionId = null;
+    let currentPartnerId = null; // partner's DB user ID
+
     // ─── Screen helpers ───────────────────────────────────────────────────────
     function show(id) {
       ['screen-landing', 'screen-prefs', 'screen-perm', 'screen-chat'].forEach(s => {
@@ -981,6 +1099,15 @@
       document.getElementById('controls').style.display = 'none';
       document.getElementById('disconnect-actions').style.display = 'flex';
       hideChatUI();
+      // Show "Add as Friend" only if both users are logged in
+      const friendBtn = document.getElementById('btn-add-friend');
+      if (currentUser && currentPartnerId) {
+        friendBtn.classList.remove('hidden');
+        friendBtn.disabled = false;
+        friendBtn.textContent = '+ Add as Friend';
+      } else {
+        friendBtn.classList.add('hidden');
+      }
     }
 
     function showReconnectButton() {
@@ -1133,16 +1260,81 @@
       }
     }
 
+    // ─── Auth ─────────────────────────────────────────────────────────────────
+    async function initAuth() {
+      try {
+        const res = await fetch('/api/me');
+        if (res.ok) {
+          currentUser = await res.json();
+          renderAuthBar(true);
+        } else {
+          renderAuthBar(false);
+        }
+      } catch {
+        renderAuthBar(false);
+      }
+    }
+
+    function renderAuthBar(loggedIn) {
+      const out = document.getElementById('auth-logged-out');
+      const inn = document.getElementById('auth-logged-in');
+      if (loggedIn && currentUser) {
+        out.classList.add('hidden');
+        inn.classList.remove('hidden');
+        document.getElementById('auth-display-name').textContent = currentUser.display_name;
+        const wrap = document.getElementById('auth-avatar-wrap');
+        if (currentUser.avatar) {
+          wrap.innerHTML = `<img src="${currentUser.avatar}" class="auth-avatar" referrerpolicy="no-referrer" />`;
+        } else {
+          const initial = (currentUser.display_name || 'U')[0].toUpperCase();
+          wrap.innerHTML = `<div class="auth-avatar-placeholder">${initial}</div>`;
+        }
+      } else {
+        out.classList.remove('hidden');
+        inn.classList.add('hidden');
+      }
+    }
+
+    async function addFriend() {
+      if (!currentPartnerId || !currentUser) return;
+      const btn = document.getElementById('btn-add-friend');
+      btn.disabled = true;
+      btn.textContent = 'Sending...';
+      try {
+        const res = await fetch('/api/friends/request', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ friendId: currentPartnerId }),
+        });
+        if (res.ok) {
+          btn.textContent = '✓ Request Sent';
+          showToast('Friend request sent!');
+        } else {
+          btn.textContent = '+ Add as Friend';
+          btn.disabled = false;
+        }
+      } catch {
+        btn.textContent = '+ Add as Friend';
+        btn.disabled = false;
+      }
+    }
+
     // ─── WebSocket ────────────────────────────────────────────────────────────
     function connectWS(token = null) {
       clearChatError();
       setStatus('waiting', 'వెతుకుతున్నాం...');
       stopTimer();
       showChatControls();
+      currentSessionId = null;
+      currentPartnerId = null;
 
       ws = new WebSocket(WS_URL);
 
       ws.onopen = () => {
+        // Send auth if logged in
+        if (currentUser) {
+          ws.send(JSON.stringify({ type: 'auth', payload: currentUser.id }));
+        }
         ws.send(JSON.stringify({
           type: 'join',
           payload: {
@@ -1222,6 +1414,11 @@
 
         case 'online-count':
           document.getElementById('online-count').textContent = raw.count || 0;
+          break;
+
+        case 'session-logged':
+          currentSessionId = raw.sessionId || null;
+          currentPartnerId = raw.partnerId || null;
           break;
 
         case 'partner-disconnected':
@@ -1389,6 +1586,7 @@
 
     // ─── Init ─────────────────────────────────────────────────────────────────
     show('screen-landing');
+    initAuth();
   </script>
 </body>
 </html>

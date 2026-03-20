@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Nestham — History</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0f0f13;
+      --surface: #1a1a24;
+      --surface2: #242433;
+      --accent: #FF6B35;
+      --accent-dim: #cc5528;
+      --text: #f0f0f5;
+      --text-dim: #9999aa;
+      --success: #4ade80;
+      --danger: #f87171;
+      --radius: 14px;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      min-height: 100dvh;
+      padding: 24px;
+      max-width: 640px;
+      margin: 0 auto;
+    }
+
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 32px;
+      padding-top: 8px;
+    }
+
+    .back-link {
+      color: var(--text-dim);
+      text-decoration: none;
+      font-size: 0.88rem;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 6px 10px;
+      border-radius: 8px;
+      transition: background 0.15s;
+    }
+
+    .back-link:hover { background: var(--surface2); color: var(--text); }
+
+    .page-title {
+      font-size: 1.4rem;
+      font-weight: 800;
+      background: linear-gradient(135deg, var(--accent), #ffb347);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    #loading {
+      color: var(--text-dim);
+      text-align: center;
+      padding: 48px 0;
+      font-size: 0.92rem;
+    }
+
+    #no-auth {
+      display: none;
+      text-align: center;
+      padding: 48px 0;
+    }
+
+    #no-auth p {
+      color: var(--text-dim);
+      margin-bottom: 20px;
+      font-size: 0.92rem;
+    }
+
+    .btn-google {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 18px;
+      background: #fff;
+      color: #3c4043;
+      border: 1px solid #dadce0;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: none;
+      transition: box-shadow 0.15s;
+    }
+
+    .btn-google:hover { box-shadow: 0 1px 6px rgba(0,0,0,0.2); }
+    .btn-google svg { width: 16px; height: 16px; flex-shrink: 0; }
+
+    #no-sessions {
+      display: none;
+      color: var(--text-dim);
+      text-align: center;
+      padding: 48px 0;
+      font-size: 0.92rem;
+    }
+
+    .session-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .session-card {
+      background: var(--surface);
+      border: 1px solid var(--surface2);
+      border-radius: var(--radius);
+      padding: 16px;
+      cursor: pointer;
+      transition: border-color 0.15s, background 0.15s;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .session-card:hover {
+      border-color: var(--accent);
+      background: #1e1e2a;
+    }
+
+    .partner-avatar {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      object-fit: cover;
+      flex-shrink: 0;
+    }
+
+    .partner-avatar-placeholder {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: var(--accent);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      font-weight: 700;
+      color: #fff;
+      flex-shrink: 0;
+    }
+
+    .session-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .partner-name {
+      font-weight: 600;
+      font-size: 0.95rem;
+      margin-bottom: 4px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .session-meta {
+      font-size: 0.78rem;
+      color: var(--text-dim);
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .session-duration {
+      color: var(--success);
+    }
+
+    .session-chevron {
+      color: var(--text-dim);
+      font-size: 1.1rem;
+      flex-shrink: 0;
+    }
+
+    /* Messages panel */
+    #msg-panel {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: var(--bg);
+      z-index: 200;
+      padding: 24px;
+      max-width: 640px;
+      margin: 0 auto;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    #msg-panel.open { display: flex; }
+
+    .msg-panel-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .msg-panel-title {
+      font-size: 1rem;
+      font-weight: 700;
+    }
+
+    .msg-panel-sub {
+      font-size: 0.78rem;
+      color: var(--text-dim);
+      margin-top: 2px;
+    }
+
+    .btn-close {
+      margin-left: auto;
+      background: var(--surface2);
+      border: none;
+      color: var(--text);
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      cursor: pointer;
+      font-size: 1rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.15s;
+    }
+
+    .btn-close:hover { background: #2e2e42; }
+
+    #msg-list {
+      flex: 1;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    #msg-list::-webkit-scrollbar { width: 4px; }
+    #msg-list::-webkit-scrollbar-track { background: transparent; }
+    #msg-list::-webkit-scrollbar-thumb { background: var(--surface2); border-radius: 4px; }
+
+    .msg-bubble {
+      max-width: 75%;
+      padding: 10px 14px;
+      border-radius: 14px;
+      font-size: 0.88rem;
+      line-height: 1.4;
+      word-break: break-word;
+    }
+
+    .msg-bubble.mine {
+      align-self: flex-end;
+      background: var(--accent);
+      color: #fff;
+      border-bottom-right-radius: 4px;
+    }
+
+    .msg-bubble.theirs {
+      align-self: flex-start;
+      background: var(--surface2);
+      color: var(--text);
+      border-bottom-left-radius: 4px;
+    }
+
+    .msg-sender {
+      font-size: 0.7rem;
+      color: rgba(255,255,255,0.6);
+      margin-bottom: 3px;
+    }
+
+    .msg-bubble.theirs .msg-sender { color: var(--text-dim); }
+
+    .no-messages {
+      color: var(--text-dim);
+      text-align: center;
+      padding: 48px 0;
+      font-size: 0.88rem;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <a href="/" class="back-link">← Back</a>
+    <div class="page-title">Session History</div>
+  </div>
+
+  <div id="loading">Loading...</div>
+  <div id="no-auth">
+    <p>Sign in to view your session history.</p>
+    <a href="/auth/google" class="btn-google">
+      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+        <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+        <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/>
+        <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+      </svg>
+      Sign in with Google
+    </a>
+  </div>
+  <div id="no-sessions">No sessions yet. Start talking!</div>
+  <div class="session-list" id="session-list"></div>
+
+  <!-- Message panel -->
+  <div id="msg-panel">
+    <div class="msg-panel-header">
+      <div>
+        <div class="msg-panel-title" id="msg-panel-title">Chat History</div>
+        <div class="msg-panel-sub" id="msg-panel-sub"></div>
+      </div>
+      <button class="btn-close" onclick="closeMsgPanel()">✕</button>
+    </div>
+    <div id="msg-list"></div>
+  </div>
+
+  <script>
+    let currentUserId = null;
+
+    async function init() {
+      try {
+        const res = await fetch('/api/me');
+        if (!res.ok) {
+          document.getElementById('loading').style.display = 'none';
+          document.getElementById('no-auth').style.display = 'block';
+          return;
+        }
+        const user = await res.json();
+        currentUserId = user.id;
+        await loadHistory();
+      } catch {
+        document.getElementById('loading').textContent = 'Failed to load. Please try again.';
+      }
+    }
+
+    async function loadHistory() {
+      try {
+        const res = await fetch('/api/history');
+        const sessions = await res.json();
+        document.getElementById('loading').style.display = 'none';
+        if (!sessions.length) {
+          document.getElementById('no-sessions').style.display = 'block';
+          return;
+        }
+        renderSessions(sessions);
+      } catch {
+        document.getElementById('loading').textContent = 'Failed to load history.';
+      }
+    }
+
+    function renderSessions(sessions) {
+      const list = document.getElementById('session-list');
+      sessions.forEach(s => {
+        const card = document.createElement('div');
+        card.className = 'session-card';
+        card.onclick = () => openMessages(s);
+
+        const avatarHtml = s.partner_avatar
+          ? `<img src="${s.partner_avatar}" class="partner-avatar" referrerpolicy="no-referrer" />`
+          : `<div class="partner-avatar-placeholder">${(s.partner_name || 'U')[0].toUpperCase()}</div>`;
+
+        const date = new Date(s.started_at).toLocaleDateString('en-IN', {
+          day: 'numeric', month: 'short', year: 'numeric',
+        });
+        const time = new Date(s.started_at).toLocaleTimeString('en-IN', {
+          hour: '2-digit', minute: '2-digit',
+        });
+        const dur = s.duration_seconds != null ? formatDuration(s.duration_seconds) : null;
+        const region = s.region && s.region !== 'any' ? s.region : null;
+
+        card.innerHTML = `
+          ${avatarHtml}
+          <div class="session-info">
+            <div class="partner-name">${escHtml(s.partner_name || 'Anonymous')}</div>
+            <div class="session-meta">
+              <span>${date} ${time}</span>
+              ${dur ? `<span class="session-duration">${dur}</span>` : ''}
+              ${region ? `<span>📍 ${escHtml(region)}</span>` : ''}
+            </div>
+          </div>
+          <span class="session-chevron">›</span>
+        `;
+        list.appendChild(card);
+      });
+    }
+
+    async function openMessages(session) {
+      const panel = document.getElementById('msg-panel');
+      const title = document.getElementById('msg-panel-title');
+      const sub = document.getElementById('msg-panel-sub');
+      const list = document.getElementById('msg-list');
+
+      title.textContent = `With ${escHtml(session.partner_name || 'Anonymous')}`;
+      const date = new Date(session.started_at).toLocaleDateString('en-IN', {
+        day: 'numeric', month: 'short', year: 'numeric',
+      });
+      sub.textContent = date + (session.duration_seconds != null ? ` · ${formatDuration(session.duration_seconds)}` : '');
+      list.innerHTML = '<div class="no-messages">Loading messages...</div>';
+      panel.classList.add('open');
+
+      try {
+        const res = await fetch(`/api/session/${session.id}/messages`);
+        const messages = await res.json();
+        if (!messages.length) {
+          list.innerHTML = '<div class="no-messages">No text messages in this session.</div>';
+          return;
+        }
+        list.innerHTML = '';
+        messages.forEach(m => {
+          const isMe = m.sender_name === session.partner_name ? false : true;
+          // Actually check if this message is from the current session partner
+          // We don't have sender_id here vs currentUserId directly, use partner_id from session
+          const fromPartner = session.partner_id && m.sender_name === session.partner_name;
+          const bubble = document.createElement('div');
+          bubble.className = `msg-bubble ${fromPartner ? 'theirs' : 'mine'}`;
+          const t = new Date(m.sent_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+          bubble.innerHTML = `<div class="msg-sender">${escHtml(m.sender_name)} · ${t}</div>${escHtml(m.content)}`;
+          list.appendChild(bubble);
+        });
+        list.scrollTop = list.scrollHeight;
+      } catch {
+        list.innerHTML = '<div class="no-messages">Failed to load messages.</div>';
+      }
+    }
+
+    function closeMsgPanel() {
+      document.getElementById('msg-panel').classList.remove('open');
+    }
+
+    function formatDuration(secs) {
+      if (!secs) return '0s';
+      const m = Math.floor(secs / 60);
+      const s = secs % 60;
+      return m > 0 ? `${m}m ${s}s` : `${s}s`;
+    }
+
+    function escHtml(str) {
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    init();
+  </script>
+</body>
+</html>
