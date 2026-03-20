@@ -483,9 +483,258 @@
 
     /* hidden utility */
     .hidden { display: none !important; }
+
+    /* ---------- ONLINE BADGE ---------- */
+    #online-badge {
+      position: fixed;
+      top: 16px;
+      right: 16px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      background: var(--surface);
+      border: 1px solid rgba(74, 222, 128, 0.2);
+      border-radius: 999px;
+      font-size: 0.75rem;
+      color: var(--text-dim);
+      z-index: 100;
+    }
+
+    #online-badge .green-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--success);
+      animation: onlinePulse 2.5s infinite;
+      flex-shrink: 0;
+    }
+
+    @keyframes onlinePulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+
+    /* ---------- TYPING INDICATOR ---------- */
+    #typing-indicator {
+      font-size: 0.78rem;
+      color: var(--text-dim);
+      min-height: 1.1em;
+      font-style: italic;
+    }
+
+    /* ---------- TEXT CHAT ---------- */
+    #text-chat-wrap {
+      width: 100%;
+      display: none;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    #chat-area {
+      width: 100%;
+      max-height: 180px;
+      overflow-y: auto;
+      background: var(--surface);
+      border-radius: var(--radius);
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      border: 1px solid var(--surface2);
+    }
+
+    #chat-area::-webkit-scrollbar { width: 4px; }
+    #chat-area::-webkit-scrollbar-track { background: transparent; }
+    #chat-area::-webkit-scrollbar-thumb { background: var(--surface2); border-radius: 4px; }
+
+    .chat-msg {
+      max-width: 80%;
+      padding: 7px 11px;
+      border-radius: 12px;
+      font-size: 0.85rem;
+      line-height: 1.4;
+      word-break: break-word;
+    }
+
+    .chat-msg.own {
+      align-self: flex-end;
+      background: var(--accent);
+      color: #fff;
+      border-bottom-right-radius: 4px;
+    }
+
+    .chat-msg.partner {
+      align-self: flex-start;
+      background: #2a2a3a;
+      color: var(--text);
+      border-bottom-left-radius: 4px;
+    }
+
+    #chat-input-row {
+      display: flex;
+      gap: 8px;
+      width: 100%;
+    }
+
+    #chat-input {
+      flex: 1;
+      padding: 10px 14px;
+      border-radius: var(--radius);
+      border: 1px solid var(--surface2);
+      background: var(--surface);
+      color: var(--text);
+      font-size: 0.88rem;
+      outline: none;
+      min-width: 0;
+      transition: border-color 0.15s;
+    }
+
+    #chat-input:focus {
+      border-color: rgba(255, 107, 53, 0.4);
+    }
+
+    #btn-chat-send {
+      padding: 10px 16px;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: var(--radius);
+      font-size: 0.88rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s;
+      white-space: nowrap;
+    }
+
+    #btn-chat-send:hover { background: var(--accent-dim); }
+
+    /* ---------- REPORT BUTTON ---------- */
+    #btn-report {
+      align-self: flex-end;
+      background: none;
+      border: none;
+      color: var(--text-dim);
+      font-size: 0.75rem;
+      cursor: pointer;
+      padding: 4px 8px;
+      border-radius: 8px;
+      transition: color 0.15s, background 0.15s;
+      display: none;
+    }
+
+    #btn-report:hover {
+      color: var(--danger);
+      background: rgba(248, 113, 113, 0.08);
+    }
+
+    /* ---------- REPORT MODAL ---------- */
+    #report-modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.7);
+      z-index: 200;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+
+    #report-modal-overlay.open {
+      display: flex;
+    }
+
+    #report-modal {
+      background: var(--surface);
+      border: 1px solid var(--surface2);
+      border-radius: var(--radius);
+      padding: 24px;
+      width: 100%;
+      max-width: 340px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    #report-modal h3 {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .report-options {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .report-option {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      cursor: pointer;
+      font-size: 0.88rem;
+      color: var(--text-dim);
+      padding: 8px 10px;
+      border-radius: 10px;
+      border: 1px solid transparent;
+      transition: all 0.15s;
+    }
+
+    .report-option:hover {
+      background: var(--surface2);
+      color: var(--text);
+      border-color: var(--surface2);
+    }
+
+    .report-option input[type="radio"] {
+      accent-color: var(--accent);
+      width: 15px;
+      height: 15px;
+      flex-shrink: 0;
+    }
+
+    .report-modal-actions {
+      display: flex;
+      gap: 10px;
+    }
+
+    .report-modal-actions .btn {
+      flex: 1;
+      padding: 11px 16px;
+      font-size: 0.88rem;
+    }
+
+    /* ---------- TOAST ---------- */
+    #toast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%) translateY(80px);
+      background: var(--surface2);
+      color: var(--text);
+      border: 1px solid rgba(74, 222, 128, 0.3);
+      padding: 10px 20px;
+      border-radius: 999px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      z-index: 300;
+      transition: transform 0.3s ease;
+      pointer-events: none;
+    }
+
+    #toast.show {
+      transform: translateX(-50%) translateY(0);
+    }
   </style>
 </head>
 <body>
+
+  <!-- Online badge -->
+  <div id="online-badge">
+    <span class="green-dot"></span>
+    <span id="online-count">0</span> online
+  </div>
 
   <!-- Landing -->
   <div id="screen-landing">
@@ -572,6 +821,8 @@
       <span id="status-text">Looking for someone...</span>
     </div>
 
+    <div id="typing-indicator"></div>
+
     <div class="visualizer-wrap" id="visualizer">
       <div class="ring ring-1"></div>
       <div class="ring ring-2"></div>
@@ -594,8 +845,48 @@
       <button class="btn btn-primary" onclick="findNew()">⏭️ Find New నెస్తమి</button>
     </div>
 
+    <!-- Text chat -->
+    <div id="text-chat-wrap">
+      <div id="chat-area"></div>
+      <div id="chat-input-row">
+        <input id="chat-input" placeholder="Type a message..." autocomplete="off" />
+        <button id="btn-chat-send" onclick="sendChat()">Send</button>
+      </div>
+    </div>
+
+    <!-- Report button -->
+    <button id="btn-report" onclick="openReportModal()">🚩 Report</button>
+
     <div id="chat-error-msg" style="display:none;background:rgba(248,113,113,0.1);border:1px solid rgba(248,113,113,0.3);color:var(--danger);padding:12px 18px;border-radius:var(--radius);font-size:0.88rem;text-align:center;width:100%;"></div>
   </div>
+
+  <!-- Report modal -->
+  <div id="report-modal-overlay">
+    <div id="report-modal">
+      <h3>Report this conversation</h3>
+      <div class="report-options">
+        <label class="report-option">
+          <input type="radio" name="report-reason" value="Harassment" /> Harassment
+        </label>
+        <label class="report-option">
+          <input type="radio" name="report-reason" value="Inappropriate content" /> Inappropriate content
+        </label>
+        <label class="report-option">
+          <input type="radio" name="report-reason" value="Bot/Spam" /> Bot / Spam
+        </label>
+        <label class="report-option">
+          <input type="radio" name="report-reason" value="Other" /> Other
+        </label>
+      </div>
+      <div class="report-modal-actions">
+        <button class="btn btn-secondary" onclick="closeReportModal()">Cancel</button>
+        <button class="btn btn-danger" onclick="submitReport()">Submit</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div id="toast"></div>
 
   <audio id="remote-audio" autoplay playsinline></audio>
 
@@ -626,6 +917,9 @@
     let selectedInterests = [];
     let reconnectToken = null;
     let reconnectCountdown = null;
+
+    // typing debounce
+    let typingTimeout = null;
 
     // ─── Screen helpers ───────────────────────────────────────────────────────
     function show(id) {
@@ -680,11 +974,13 @@
         clearInterval(reconnectCountdown);
         reconnectCountdown = null;
       }
+      hideChatUI();
     }
 
     function showDisconnectActions() {
       document.getElementById('controls').style.display = 'none';
       document.getElementById('disconnect-actions').style.display = 'flex';
+      hideChatUI();
     }
 
     function showReconnectButton() {
@@ -704,6 +1000,44 @@
           reconnectToken = null;
         }
       }, 1000);
+    }
+
+    // ─── Text chat UI ─────────────────────────────────────────────────────────
+    function showChatUI() {
+      document.getElementById('text-chat-wrap').style.display = 'flex';
+      document.getElementById('btn-report').style.display = '';
+      clearChatMessages();
+    }
+
+    function hideChatUI() {
+      document.getElementById('text-chat-wrap').style.display = 'none';
+      document.getElementById('btn-report').style.display = 'none';
+      document.getElementById('typing-indicator').textContent = '';
+    }
+
+    function clearChatMessages() {
+      document.getElementById('chat-area').innerHTML = '';
+    }
+
+    function addChatMessage(text, isOwn) {
+      const area = document.getElementById('chat-area');
+      const div = document.createElement('div');
+      div.className = `chat-msg ${isOwn ? 'own' : 'partner'}`;
+      div.textContent = text;
+      area.appendChild(div);
+      area.scrollTop = area.scrollHeight;
+    }
+
+    function sendChat() {
+      const input = document.getElementById('chat-input');
+      const text = input.value.trim();
+      if (!text) return;
+      wsSend('chat', { text });
+      addChatMessage(text, true);
+      input.value = '';
+      // stop typing signal
+      if (typingTimeout) { clearTimeout(typingTimeout); typingTimeout = null; }
+      wsSend('typing', { isTyping: false });
     }
 
     // ─── Timer ────────────────────────────────────────────────────────────────
@@ -822,7 +1156,7 @@
       ws.onmessage = async (evt) => {
         const msg = JSON.parse(evt.data);
         const { type, payload, token: tok, message } = msg;
-        await handleSignal(type, payload, tok, message);
+        await handleSignal(type, payload, tok, message, msg);
       };
 
       ws.onerror = () => showChatError('Connection error. Retrying...');
@@ -835,11 +1169,16 @@
     }
 
     // ─── Signaling ────────────────────────────────────────────────────────────
-    async function handleSignal(type, payload, token, message) {
+    async function handleSignal(type, payload, token, message, raw) {
       switch (type) {
-        case 'waiting':
-          setStatus('waiting', 'వెతుకుతున్నాం...');
+        case 'waiting': {
+          const poolSize = raw && raw.poolSize !== undefined ? raw.poolSize : 0;
+          const waitText = poolSize === 0
+            ? 'వెతుకుతున్నాం...'
+            : `~${poolSize * 15}s wait`;
+          setStatus('waiting', waitText);
           break;
+        }
 
         case 'paired':
           role = payload.role;
@@ -866,6 +1205,23 @@
           if (payload) {
             try { await pc.addIceCandidate(new RTCIceCandidate(payload)); } catch (e) {}
           }
+          break;
+
+        case 'chat':
+          if (payload && payload.text) {
+            addChatMessage(payload.text, false);
+          }
+          break;
+
+        case 'typing':
+          if (payload) {
+            const indicator = document.getElementById('typing-indicator');
+            indicator.textContent = payload.isTyping ? 'Partner is typing...' : '';
+          }
+          break;
+
+        case 'online-count':
+          document.getElementById('online-count').textContent = raw.count || 0;
           break;
 
         case 'partner-disconnected':
@@ -915,6 +1271,7 @@
           setStatus('connected', 'మీ నెస్తం దొరికాడు! 🎉');
           startTimer();
           connected = true;
+          showChatUI();
         } else if (['disconnected', 'failed', 'closed'].includes(pc.connectionState)) {
           onPartnerGone();
         }
@@ -937,6 +1294,7 @@
       stopTimer();
       setStatus('disconnected', 'వెళ్ళిపోయాడు.');
       showDisconnectActions();
+      document.getElementById('typing-indicator').textContent = '';
     }
 
     // ─── Disconnect screen actions ────────────────────────────────────────────
@@ -980,6 +1338,54 @@
       muted = false;
       show('screen-landing');
     }
+
+    // ─── Report modal ─────────────────────────────────────────────────────────
+    function openReportModal() {
+      document.getElementById('report-modal-overlay').classList.add('open');
+      // reset selection
+      document.querySelectorAll('input[name="report-reason"]').forEach(r => { r.checked = false; });
+    }
+
+    function closeReportModal() {
+      document.getElementById('report-modal-overlay').classList.remove('open');
+    }
+
+    async function submitReport() {
+      const selected = document.querySelector('input[name="report-reason"]:checked');
+      if (!selected) return;
+      closeReportModal();
+      try {
+        await fetch('/api/report', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ reason: selected.value, reportedIp: '' }),
+        });
+      } catch (e) { /* ignore */ }
+      showToast('Reported. Thanks.');
+      setTimeout(() => skip(), 3000);
+    }
+
+    function showToast(msg) {
+      const toast = document.getElementById('toast');
+      toast.textContent = msg;
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 3000);
+    }
+
+    // ─── Chat input events ────────────────────────────────────────────────────
+    document.getElementById('chat-input').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        sendChat();
+        return;
+      }
+      // typing indicator
+      wsSend('typing', { isTyping: true });
+      if (typingTimeout) clearTimeout(typingTimeout);
+      typingTimeout = setTimeout(() => {
+        wsSend('typing', { isTyping: false });
+        typingTimeout = null;
+      }, 2000);
+    });
 
     // ─── Init ─────────────────────────────────────────────────────────────────
     show('screen-landing');

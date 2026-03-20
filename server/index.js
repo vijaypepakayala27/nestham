@@ -17,6 +17,7 @@ app.use((req, res, next) => {
 
 // Serve static files from public/
 app.use(express.static(path.join(__dirname, '../public')));
+app.use(express.json());
 
 // ─── IP helpers ───────────────────────────────────────────────────────────────
 function getIP(req) {
@@ -51,6 +52,18 @@ const DUAL_JOIN_WINDOW_MS = 10_000;
 const waitingPool = []; // array of ws objects waiting for match
 const peers = new Map();
 let nextId = 1;
+
+// ─── Online count ─────────────────────────────────────────────────────────────
+let onlineCount = 0;
+
+function broadcastOnlineCount() {
+  const msg = JSON.stringify({ type: 'online-count', count: onlineCount });
+  wss.clients.forEach(client => {
+    if (client.readyState === client.OPEN) {
+      client.send(msg);
+    }
+  });
+}
 
 // ─── Reconnect tokens ─────────────────────────────────────────────────────────
 // token -> { user1id, user2id, expires }
@@ -127,6 +140,18 @@ function send(ws, data) {
   }
 }
 
+// ─── REST endpoints ───────────────────────────────────────────────────────────
+app.get('/api/online', (req, res) => {
+  res.json({ count: onlineCount });
+});
+
+app.post('/api/report', (req, res) => {
+  const { reason, reportedIp } = req.body || {};
+  const masked = reportedIp ? maskIP(String(reportedIp)) : 'unknown';
+  console.log(`[REPORT] ${ts()} reason="${reason || 'none'}" ip=${masked}`);
+  res.json({ ok: true });
+});
+
 // ─── WebSocket connections ────────────────────────────────────────────────────
 wss.on('connection', (ws, req) => {
   const ip = getIP(req);
@@ -144,6 +169,8 @@ wss.on('connection', (ws, req) => {
   }
 
   connSet.add(ws);
+  onlineCount++;
+  broadcastOnlineCount();
 
   const id = genId();
   ws.userId = id;
@@ -236,7 +263,7 @@ wss.on('connection', (ws, req) => {
           waitingPool.push(ws);
           peers.set(ws.userId, ws);
           console.log(`[?] ${ts()} ${id} (${masked}) waiting for partner`);
-          send(ws, { type: 'waiting' });
+          send(ws, { type: 'waiting', poolSize: waitingPool.length - 1 });
         }
         break;
       }
@@ -244,6 +271,15 @@ wss.on('connection', (ws, req) => {
       case 'offer':
       case 'answer':
       case 'ice-candidate': {
+        if (ws.partnerId) {
+          const partner = peers.get(ws.partnerId);
+          if (partner) send(partner, { type, payload });
+        }
+        break;
+      }
+
+      case 'chat':
+      case 'typing': {
         if (ws.partnerId) {
           const partner = peers.get(ws.partnerId);
           if (partner) send(partner, { type, payload });
@@ -264,6 +300,8 @@ wss.on('connection', (ws, req) => {
       set.delete(ws);
       if (set.size === 0) ipConnections.delete(ip);
     }
+    onlineCount = Math.max(0, onlineCount - 1);
+    broadcastOnlineCount();
     console.log(`[-] ${ts()} ${ws.userId} disconnected (${masked})`);
     handleDisconnect(ws);
   });
