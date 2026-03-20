@@ -150,7 +150,7 @@ function findBestMatch(ws) {
     const score = matchScore(candidate, ws);
     const candidateRelaxed =
       candidate.joinedPoolAt !== undefined && (now - candidate.joinedPoolAt) > 30_000;
-    const minScore = (wsRelaxed || candidateRelaxed) ? 0 : 1;
+    const minScore = 0; // always match anyone, score just determines best match
 
     if (score >= minScore && score > bestScore) {
       best = candidate;
@@ -503,11 +503,13 @@ wss.on('connection', (ws, req) => {
       }
 
       case 'join': {
-        // Dual-connection detection: two joins from same IP within 10 s
+        // Dual-connection detection: only block if same IP joins within 100ms (bot behaviour)
+        // Skip check for localhost (testing/development)
         const now = Date.now();
         const lastJoin = ipJoinTimes.get(ip);
-        if (lastJoin !== undefined && now - lastJoin < DUAL_JOIN_WINDOW_MS) {
-          console.warn(`[SUSPICIOUS] ${ts()} Dual join from ${masked} — disconnecting both`);
+        const isLocalhost = ip === '::1' || ip === '127.0.0.1' || ip === '::ffff:127.0.0.1';
+        if (!isLocalhost && lastJoin !== undefined && now - lastJoin < 100) {
+          console.warn(`[SUSPICIOUS] ${ts()} Rapid dual join from ${masked} — disconnecting both`);
           const suspIdx = waitingPool.findIndex(u => u.clientIp === ip && u !== ws);
           if (suspIdx !== -1) {
             const susp = waitingPool.splice(suspIdx, 1)[0];

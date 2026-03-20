@@ -14,5 +14,8 @@
     "node-fetch": "^2.7.0",
     "pg": "^8.20.0",
     "ws": "^8.16.0"
+  },
+  "devDependencies": {
+    "puppeteer": "^24.40.0"
   }
 }

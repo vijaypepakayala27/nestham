@@ -1001,7 +1001,8 @@
   <!-- Toast -->
   <div id="toast"></div>
 
-  <audio id="remote-audio" autoplay playsinline></audio>
+  <audio id="remote-audio" playsinline></audio>
+  <button id="btn-audio-unlock" onclick="unlockAudio()" style="display:none;position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#FF6B35;color:#fff;border:none;border-radius:50px;padding:16px 32px;font-size:1.1rem;font-weight:700;cursor:pointer;z-index:9999;box-shadow:0 4px 24px rgba(255,107,53,0.5);">🔊 Tap to enable audio</button>
 
   <script>
     // ─── Config ───────────────────────────────────────────────────────────────
@@ -1013,6 +1014,40 @@
     const ICE_SERVERS = [
       { urls: 'stun:stun.l.google.com:19302' },
       { urls: 'stun:stun1.l.google.com:19302' },
+      { urls: 'stun:stun2.l.google.com:19302' },
+      { urls: 'stun:stun3.l.google.com:19302' },
+      { urls: 'stun:stun4.l.google.com:19302' },
+      { urls: 'stun:stun.relay.metered.ca:80' },
+      {
+        urls: 'turn:openrelay.metered.ca:80',
+        username: 'openrelayproject',
+        credential: 'openrelayproject'
+      },
+      {
+        urls: 'turn:openrelay.metered.ca:443',
+        username: 'openrelayproject',
+        credential: 'openrelayproject'
+      },
+      {
+        urls: 'turn:openrelay.metered.ca:443?transport=tcp',
+        username: 'openrelayproject',
+        credential: 'openrelayproject'
+      },
+      {
+        urls: 'turn:global.relay.metered.ca:80',
+        username: 'openrelayproject',
+        credential: 'openrelayproject'
+      },
+      {
+        urls: 'turn:global.relay.metered.ca:443',
+        username: 'openrelayproject',
+        credential: 'openrelayproject'
+      },
+      {
+        urls: 'turns:global.relay.metered.ca:443?transport=tcp',
+        username: 'openrelayproject',
+        credential: 'openrelayproject'
+      }
     ];
 
     // ─── State ────────────────────────────────────────────────────────────────
@@ -1033,6 +1068,9 @@
 
     // typing debounce
     let typingTimeout = null;
+
+    // ICE timeout
+    let iceConnectTimeout = null;
 
     // auth state
     let currentUser = null;   // { id, display_name, avatar }
@@ -1260,6 +1298,16 @@
       }
     }
 
+    // ─── Audio unlock ─────────────────────────────────────────────────────────
+    function unlockAudio() {
+      const audio = document.getElementById('remote-audio');
+      audio.play().then(() => {
+        document.getElementById('btn-audio-unlock').style.display = 'none';
+      }).catch(err => {
+        console.warn('[Audio] still blocked:', err);
+      });
+    }
+
     // ─── Auth ─────────────────────────────────────────────────────────────────
     async function initAuth() {
       try {
@@ -1426,7 +1474,7 @@
           break;
 
         case 'reconnect-token':
-          reconnectToken = token;
+          reconnectToken = payload;
           showReconnectButton();
           break;
 
@@ -1445,16 +1493,41 @@
     // ─── PeerConnection ───────────────────────────────────────────────────────
     async function setupPeerConnection() {
       closePeer();
-      pc = new RTCPeerConnection({ iceServers: ICE_SERVERS });
+      pc = new RTCPeerConnection({
+        iceServers: ICE_SERVERS,
+        iceTransportPolicy: 'all',
+        iceCandidatePoolSize: 10
+      });
 
       // Add local tracks
       localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
 
       // Remote audio
       pc.ontrack = (evt) => {
+        console.log('[WebRTC] ontrack fired, streams:', evt.streams?.length, 'tracks:', evt.track?.kind);
         const audio = document.getElementById('remote-audio');
         if (evt.streams && evt.streams[0]) {
           audio.srcObject = evt.streams[0];
+          // Force volume and unmute
+          audio.volume = 1.0;
+          audio.muted = false;
+          
+          // Try to play immediately
+          const tryPlay = () => {
+            audio.play().then(() => {
+              console.log('[Audio] playing successfully');
+              document.getElementById('btn-audio-unlock').style.display = 'none';
+            }).catch(err => {
+              console.warn('[Audio] autoplay blocked:', err.name);
+              // Show big tap-to-play button
+              document.getElementById('btn-audio-unlock').style.display = '';
+            });
+          };
+          tryPlay();
+          
+          // Safari/iOS workaround: try again after a small delay
+          setTimeout(tryPlay, 500);
+          setTimeout(tryPlay, 2000);
         }
       };
 
@@ -1464,18 +1537,62 @@
       };
 
       pc.onconnectionstatechange = () => {
-        if (pc.connectionState === 'connected') {
+        console.log('[WebRTC] connectionState:', pc.connectionState);
+        if (pc.connectionState === 'connecting') {
+          setStatus('waiting', 'కనెక్ట్ అవుతోంది...');
+        } else if (pc.connectionState === 'connected') {
+          if (iceConnectTimeout) { clearTimeout(iceConnectTimeout); iceConnectTimeout = null; }
           setStatus('connected', 'మీ నెస్తం దొరికాడు! 🎉');
           startTimer();
           connected = true;
           showChatUI();
-        } else if (['disconnected', 'failed', 'closed'].includes(pc.connectionState)) {
+          // Force audio play on successful connection
+          const aud = document.getElementById('remote-audio');
+          if (aud.srcObject) aud.play().catch(() => {});
+        } else if (pc.connectionState === 'failed') {
+          console.warn('[WebRTC] Connection failed — trying ICE restart');
+          setStatus('waiting', 'retry చేస్తున్నాం...');
+          if (role === 'caller') {
+            pc.restartIce();
+          } else {
+            setTimeout(() => onPartnerGone(), 5000);
+          }
+        } else if (pc.connectionState === 'disconnected') {
+          setTimeout(() => {
+            if (pc && pc.connectionState === 'disconnected') onPartnerGone();
+          }, 3000);
+        } else if (pc.connectionState === 'closed') {
           onPartnerGone();
         }
       };
+
+      pc.oniceconnectionstatechange = () => {
+        console.log('[ICE] iceConnectionState:', pc.iceConnectionState);
+        if (pc.iceConnectionState === 'connected' || pc.iceConnectionState === 'completed') {
+          if (iceConnectTimeout) { clearTimeout(iceConnectTimeout); iceConnectTimeout = null; }
+        }
+        if (pc.iceConnectionState === 'failed') {
+          console.warn('[ICE] Failed — restarting ICE');
+          if (role === 'caller') pc.restartIce();
+        }
+      };
+
+      pc.onicegatheringstatechange = () => {
+        console.log('[ICE] gatheringState:', pc.iceGatheringState);
+      };
+
+      // 15s ICE connection timeout
+      iceConnectTimeout = setTimeout(() => {
+        if (pc && pc.connectionState !== 'connected' && pc.connectionState !== 'closed') {
+          console.warn('[ICE] No connection after 15s — restarting ICE');
+          setStatus('waiting', 'Connection slow... retrying');
+          if (role === 'caller') pc.restartIce();
+        }
+      }, 15000);
     }
 
     function closePeer() {
+      if (iceConnectTimeout) { clearTimeout(iceConnectTimeout); iceConnectTimeout = null; }
       if (pc) {
         pc.close();
         pc = null;
@@ -1483,6 +1600,7 @@
       connected = false;
       const audio = document.getElementById('remote-audio');
       audio.srcObject = null;
+      document.getElementById('btn-audio-unlock').style.display = 'none';
     }
 
     // ─── Partner gone ─────────────────────────────────────────────────────────
