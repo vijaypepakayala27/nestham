@@ -12,6 +12,7 @@
     "google-auth-library": "^10.6.2",
     "jsonwebtoken": "^9.0.0",
     "node-fetch": "^2.7.0",
+    "node-turn": "^0.0.6",
     "pg": "^8.20.0",
     "ws": "^8.16.0"
   },

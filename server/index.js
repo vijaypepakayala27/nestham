@@ -78,6 +78,26 @@ const MAX_CONNECTIONS_PER_IP = 2;
 const ipJoinTimes = new Map();
 const DUAL_JOIN_WINDOW_MS = 10_000;
 
+
+// ─── TURN credentials endpoint ────────────────────────────────────────────────
+// Generate time-limited TURN credentials using HMAC (RFC 5389)
+const crypto = require('crypto');
+app.get('/api/turn-credentials', (req, res) => {
+  const secret = process.env.TURN_SECRET || 'nestham_turn_secret_2026';
+  const ttl = 3600; // 1 hour
+  const username = Math.floor(Date.now() / 1000) + ttl + ':nestham';
+  const hmac = crypto.createHmac('sha1', secret);
+  hmac.update(username);
+  const credential = hmac.digest('base64');
+  res.json({
+    iceServers: [
+      { urls: 'stun:stun.l.google.com:19302' },
+      { urls: 'stun:stun1.l.google.com:19302' },
+    ],
+    username,
+    credential
+  });
+});
 // ─── Matchmaking state ────────────────────────────────────────────────────────
 const waitingPool = []; // array of ws objects waiting for match
 const peers = new Map();
