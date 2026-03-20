@@ -1,0 +1,14 @@
+{
+  "name": "nestham-server",
+  "version": "1.0.0",
+  "description": "Nestham signaling server for WebRTC voice chat",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "node --watch index.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "ws": "^8.16.0"
+  }
+}

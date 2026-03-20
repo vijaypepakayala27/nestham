@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Nestham — Telugu Voice Chat</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0f0f13;
+      --surface: #1a1a24;
+      --surface2: #242433;
+      --accent: #FF6B35;
+      --accent-dim: #cc5528;
+      --accent-glow: rgba(255, 107, 53, 0.25);
+      --text: #f0f0f5;
+      --text-dim: #9999aa;
+      --success: #4ade80;
+      --danger: #f87171;
+      --radius: 14px;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      min-height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+
+    /* ---------- LANDING ---------- */
+    #screen-landing {
+      text-align: center;
+      max-width: 420px;
+      width: 100%;
+    }
+
+    .brand {
+      font-size: 2.8rem;
+      font-weight: 800;
+      letter-spacing: -1px;
+      background: linear-gradient(135deg, var(--accent), #ffb347);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 6px;
+    }
+
+    .tagline {
+      color: var(--text-dim);
+      font-size: 1rem;
+      margin-bottom: 48px;
+      line-height: 1.5;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 14px 32px;
+      border-radius: var(--radius);
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      transition: all 0.18s ease;
+      text-decoration: none;
+    }
+
+    .btn:active { transform: scale(0.97); }
+
+    .btn-primary {
+      background: var(--accent);
+      color: #fff;
+      width: 100%;
+      font-size: 1.1rem;
+      padding: 16px;
+      box-shadow: 0 4px 24px var(--accent-glow);
+    }
+
+    .btn-primary:hover { background: var(--accent-dim); }
+
+    .btn-secondary {
+      background: var(--surface2);
+      color: var(--text);
+    }
+
+    .btn-secondary:hover { background: #2e2e42; }
+
+    .btn-danger {
+      background: #3b1c1c;
+      color: var(--danger);
+      border: 1px solid #5a2a2a;
+    }
+
+    .btn-danger:hover { background: #4a2020; }
+
+    .note {
+      margin-top: 16px;
+      font-size: 0.8rem;
+      color: var(--text-dim);
+      line-height: 1.5;
+    }
+
+    /* ---------- CHAT SCREEN ---------- */
+    #screen-chat {
+      width: 100%;
+      max-width: 420px;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      gap: 24px;
+    }
+
+    .chat-header {
+      text-align: center;
+    }
+
+    .brand-sm {
+      font-size: 1.4rem;
+      font-weight: 800;
+      background: linear-gradient(135deg, var(--accent), #ffb347);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    /* Status badge */
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 18px;
+      border-radius: 999px;
+      font-size: 0.88rem;
+      font-weight: 600;
+      transition: all 0.3s ease;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .status-waiting {
+      background: rgba(255, 200, 100, 0.12);
+      color: #ffc864;
+      border: 1px solid rgba(255, 200, 100, 0.25);
+    }
+
+    .status-waiting .status-dot {
+      background: #ffc864;
+      animation: pulse 1.4s infinite;
+    }
+
+    .status-connected {
+      background: rgba(74, 222, 128, 0.1);
+      color: var(--success);
+      border: 1px solid rgba(74, 222, 128, 0.25);
+    }
+
+    .status-connected .status-dot {
+      background: var(--success);
+    }
+
+    .status-disconnected {
+      background: rgba(248, 113, 113, 0.1);
+      color: var(--danger);
+      border: 1px solid rgba(248, 113, 113, 0.25);
+    }
+
+    .status-disconnected .status-dot {
+      background: var(--danger);
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(0.85); }
+    }
+
+    /* Voice visualizer */
+    .visualizer-wrap {
+      width: 160px;
+      height: 160px;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .ring {
+      position: absolute;
+      border-radius: 50%;
+      border: 2px solid var(--accent);
+      opacity: 0;
+    }
+
+    .ring-1 { width: 100%; height: 100%; }
+    .ring-2 { width: 80%; height: 80%; }
+    .ring-3 { width: 60%; height: 60%; }
+
+    .viz-active .ring-1 { animation: ripple 2s infinite 0s; }
+    .viz-active .ring-2 { animation: ripple 2s infinite 0.4s; }
+    .viz-active .ring-3 { animation: ripple 2s infinite 0.8s; }
+
+    @keyframes ripple {
+      0%   { opacity: 0.6; transform: scale(0.8); }
+      100% { opacity: 0;   transform: scale(1.15); }
+    }
+
+    .mic-icon {
+      width: 64px;
+      height: 64px;
+      background: var(--surface2);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 28px;
+      z-index: 1;
+      border: 2px solid var(--surface2);
+      transition: border-color 0.2s;
+    }
+
+    .mic-icon.muted {
+      border-color: var(--danger);
+      background: rgba(248,113,113,0.1);
+    }
+
+    /* Timer */
+    .timer {
+      font-size: 0.9rem;
+      color: var(--text-dim);
+      letter-spacing: 1px;
+      min-height: 1.2em;
+    }
+
+    /* Controls */
+    .controls {
+      display: flex;
+      gap: 12px;
+      width: 100%;
+    }
+
+    .controls .btn {
+      flex: 1;
+    }
+
+    .btn-mute {
+      background: var(--surface2);
+      color: var(--text);
+      border: 1px solid transparent;
+      transition: all 0.18s;
+    }
+
+    .btn-mute.active {
+      background: rgba(248,113,113,0.12);
+      color: var(--danger);
+      border-color: rgba(248,113,113,0.3);
+    }
+
+    .btn-mute:hover { background: #2e2e42; }
+
+    .btn-skip {
+      background: var(--surface2);
+      color: var(--accent);
+      border: 1px solid rgba(255,107,53,0.25);
+    }
+
+    .btn-skip:hover { background: #2e2e42; }
+
+    .btn-end {
+      background: var(--surface2);
+      color: var(--danger);
+      border: 1px solid rgba(248,113,113,0.25);
+    }
+
+    .btn-end:hover { background: rgba(248,113,113,0.1); }
+
+    /* Error */
+    #error-msg {
+      display: none;
+      background: rgba(248,113,113,0.1);
+      border: 1px solid rgba(248,113,113,0.3);
+      color: var(--danger);
+      padding: 12px 18px;
+      border-radius: var(--radius);
+      font-size: 0.88rem;
+      text-align: center;
+      width: 100%;
+    }
+
+    /* Permission screen */
+    #screen-perm {
+      text-align: center;
+      max-width: 380px;
+      width: 100%;
+    }
+
+    .perm-icon {
+      font-size: 56px;
+      margin-bottom: 16px;
+    }
+
+    .perm-title {
+      font-size: 1.4rem;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    .perm-desc {
+      color: var(--text-dim);
+      font-size: 0.92rem;
+      line-height: 1.6;
+      margin-bottom: 32px;
+    }
+
+    /* hidden utility */
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+
+  <!-- Landing -->
+  <div id="screen-landing">
+    <div class="brand">Nestham</div>
+    <p class="tagline">Telugu వాళ్ళతో మాట్లాడు.<br>Voice only. Anonymous. Simple.</p>
+    <button class="btn btn-primary" id="btn-start" onclick="startFlow()">
+      🎙️ Start Talking
+    </button>
+    <p class="note">Telugu వాళ్ళ కోసం Telugu వాళ్ళు చేసిన app &nbsp;·&nbsp; No accounts &nbsp;·&nbsp; No data stored</p>
+  </div>
+
+  <!-- Mic permission request -->
+  <div id="screen-perm" class="hidden">
+    <div class="perm-icon">🎙️</div>
+    <div class="perm-title">Allow microphone</div>
+    <p class="perm-desc">Nestham needs your mic to connect you with someone. No audio is recorded or stored.</p>
+    <button class="btn btn-primary" id="btn-perm" onclick="requestMic()">Allow Microphone</button>
+    <div id="error-msg" style="margin-top:16px;"></div>
+  </div>
+
+  <!-- Chat -->
+  <div id="screen-chat">
+    <div class="chat-header">
+      <div class="brand-sm">Nestham</div>
+    </div>
+
+    <div id="status-badge" class="status-badge status-waiting">
+      <span class="status-dot"></span>
+      <span id="status-text">Looking for someone...</span>
+    </div>
+
+    <div class="visualizer-wrap" id="visualizer">
+      <div class="ring ring-1"></div>
+      <div class="ring ring-2"></div>
+      <div class="ring ring-3"></div>
+      <div class="mic-icon" id="mic-icon">🎙️</div>
+    </div>
+
+    <div class="timer" id="timer"></div>
+
+    <div class="controls">
+      <button class="btn btn-mute" id="btn-mute" onclick="toggleMute()">🔇 Mute</button>
+      <button class="btn btn-skip" id="btn-skip" onclick="skip()">⏭ Skip</button>
+      <button class="btn btn-end" id="btn-end" onclick="endSession()">✕ Stop</button>
+    </div>
+
+    <div id="error-msg"></div>
+  </div>
+
+  <audio id="remote-audio" autoplay playsinline></audio>
+
+  <script>
+    // ─── Config ───────────────────────────────────────────────────────────────
+    const WS_URL = (() => {
+      const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+      return `${proto}://${location.host}`;
+    })();
+
+    const ICE_SERVERS = [
+      { urls: 'stun:stun.l.google.com:19302' },
+      { urls: 'stun:stun1.l.google.com:19302' },
+    ];
+
+    // ─── State ────────────────────────────────────────────────────────────────
+    let ws = null;
+    let pc = null;
+    let localStream = null;
+    let muted = false;
+    let role = null; // 'caller' | 'callee'
+    let connected = false;
+    let timerInterval = null;
+    let timerStart = null;
+
+    // ─── Screen helpers ───────────────────────────────────────────────────────
+    function show(id) {
+      ['screen-landing', 'screen-perm', 'screen-chat'].forEach(s => {
+        document.getElementById(s).style.display = s === id
+          ? (id === 'screen-chat' ? 'flex' : 'block')
+          : 'none';
+      });
+    }
+
+    function setStatus(state, text) {
+      const badge = document.getElementById('status-badge');
+      badge.className = `status-badge status-${state}`;
+      document.getElementById('status-text').textContent = text;
+
+      const viz = document.getElementById('visualizer');
+      if (state === 'connected') {
+        viz.classList.add('viz-active');
+      } else {
+        viz.classList.remove('viz-active');
+      }
+    }
+
+    function showError(msg) {
+      const el = document.getElementById('error-msg');
+      el.style.display = 'block';
+      el.textContent = msg;
+    }
+
+    function clearError() {
+      const el = document.getElementById('error-msg');
+      el.style.display = 'none';
+      el.textContent = '';
+    }
+
+    // ─── Timer ────────────────────────────────────────────────────────────────
+    function startTimer() {
+      timerStart = Date.now();
+      timerInterval = setInterval(() => {
+        const s = Math.floor((Date.now() - timerStart) / 1000);
+        const m = Math.floor(s / 60).toString().padStart(2, '0');
+        const sec = (s % 60).toString().padStart(2, '0');
+        document.getElementById('timer').textContent = `${m}:${sec}`;
+      }, 500);
+    }
+
+    function stopTimer() {
+      clearInterval(timerInterval);
+      timerInterval = null;
+      document.getElementById('timer').textContent = '';
+    }
+
+    // ─── Landing → Perm ───────────────────────────────────────────────────────
+    function startFlow() {
+      show('screen-perm');
+    }
+
+    // ─── Mic ─────────────────────────────────────────────────────────────────
+    async function requestMic() {
+      try {
+        localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+        show('screen-chat');
+        clearError();
+        connectWS();
+      } catch (err) {
+        showError('Microphone access denied. Please allow mic access and try again.');
+        console.error(err);
+      }
+    }
+
+    function toggleMute() {
+      if (!localStream) return;
+      muted = !muted;
+      localStream.getAudioTracks().forEach(t => { t.enabled = !muted; });
+      const btn = document.getElementById('btn-mute');
+      const icon = document.getElementById('mic-icon');
+      if (muted) {
+        btn.textContent = '🎙️ Unmute';
+        btn.classList.add('active');
+        icon.textContent = '🔇';
+        icon.classList.add('muted');
+      } else {
+        btn.textContent = '🔇 Mute';
+        btn.classList.remove('active');
+        icon.textContent = '🎙️';
+        icon.classList.remove('muted');
+      }
+    }
+
+    // ─── WebSocket ────────────────────────────────────────────────────────────
+    function connectWS() {
+      clearError();
+      setStatus('waiting', 'వెతుకుతున్నాం...');
+      stopTimer();
+
+      ws = new WebSocket(WS_URL);
+
+      ws.onopen = () => {
+        ws.send(JSON.stringify({ type: 'join' }));
+      };
+
+      ws.onmessage = async (evt) => {
+        const { type, payload } = JSON.parse(evt.data);
+        await handleSignal(type, payload);
+      };
+
+      ws.onerror = () => showError('Connection error. Retrying...');
+
+      ws.onclose = () => {
+        if (connected) {
+          onPartnerGone();
+        }
+      };
+    }
+
+    // ─── Signaling ────────────────────────────────────────────────────────────
+    async function handleSignal(type, payload) {
+      switch (type) {
+        case 'waiting':
+          setStatus('waiting', 'వెతుకుతున్నాం...');
+          break;
+
+        case 'paired':
+          role = payload.role;
+          await setupPeerConnection();
+          if (role === 'caller') {
+            const offer = await pc.createOffer();
+            await pc.setLocalDescription(offer);
+            wsSend('offer', pc.localDescription);
+          }
+          break;
+
+        case 'offer':
+          await pc.setRemoteDescription(new RTCSessionDescription(payload));
+          const answer = await pc.createAnswer();
+          await pc.setLocalDescription(answer);
+          wsSend('answer', pc.localDescription);
+          break;
+
+        case 'answer':
+          await pc.setRemoteDescription(new RTCSessionDescription(payload));
+          break;
+
+        case 'ice-candidate':
+          if (payload) {
+            try { await pc.addIceCandidate(new RTCIceCandidate(payload)); } catch (e) {}
+          }
+          break;
+
+        case 'partner-disconnected':
+          onPartnerGone();
+          break;
+      }
+    }
+
+    function wsSend(type, payload) {
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ type, payload }));
+      }
+    }
+
+    // ─── PeerConnection ───────────────────────────────────────────────────────
+    async function setupPeerConnection() {
+      closePeer();
+      pc = new RTCPeerConnection({ iceServers: ICE_SERVERS });
+
+      // Add local tracks
+      localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
+
+      // Remote audio
+      pc.ontrack = (evt) => {
+        const audio = document.getElementById('remote-audio');
+        if (evt.streams && evt.streams[0]) {
+          audio.srcObject = evt.streams[0];
+        }
+      };
+
+      // ICE
+      pc.onicecandidate = (evt) => {
+        wsSend('ice-candidate', evt.candidate);
+      };
+
+      pc.onconnectionstatechange = () => {
+        if (pc.connectionState === 'connected') {
+          setStatus('connected', 'మీ నెస్తం దొరికాడు! 🎉');
+          startTimer();
+          connected = true;
+        } else if (['disconnected', 'failed', 'closed'].includes(pc.connectionState)) {
+          onPartnerGone();
+        }
+      };
+    }
+
+    function closePeer() {
+      if (pc) {
+        pc.close();
+        pc = null;
+      }
+      connected = false;
+      const audio = document.getElementById('remote-audio');
+      audio.srcObject = null;
+    }
+
+    // ─── Partner gone ─────────────────────────────────────────────────────────
+    function onPartnerGone() {
+      closePeer();
+      stopTimer();
+      setStatus('disconnected', 'వెళ్ళిపోయాడు. మళ్ళీ వెతుకుదామా?');
+    }
+
+    // ─── Skip / Stop ──────────────────────────────────────────────────────────
+    function skip() {
+      wsSend('disconnect', null);
+      closePeer();
+      stopTimer();
+      // Reconnect to find new partner
+      if (ws) { ws.close(); ws = null; }
+      connectWS();
+    }
+
+    function endSession() {
+      wsSend('disconnect', null);
+      closePeer();
+      stopTimer();
+      if (ws) { ws.close(); ws = null; }
+      if (localStream) {
+        localStream.getTracks().forEach(t => t.stop());
+        localStream = null;
+      }
+      muted = false;
+      show('screen-landing');
+    }
+
+    // ─── Init ─────────────────────────────────────────────────────────────────
+    show('screen-landing');
+  </script>
+</body>
+</html>
