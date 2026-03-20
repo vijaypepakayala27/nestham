@@ -108,6 +108,136 @@
       line-height: 1.5;
     }
 
+    /* ---------- PREFS SCREEN ---------- */
+    #screen-prefs {
+      max-width: 420px;
+      width: 100%;
+    }
+
+    .prefs-header {
+      text-align: center;
+      margin-bottom: 28px;
+    }
+
+    .pref-section {
+      margin-bottom: 22px;
+    }
+
+    .pref-label {
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .pref-label span {
+      font-weight: 500;
+      letter-spacing: 0;
+      text-transform: none;
+      font-size: 0.78rem;
+      color: var(--accent);
+    }
+
+    .pill-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .pill {
+      padding: 8px 14px;
+      border-radius: 999px;
+      border: 1px solid var(--surface2);
+      background: var(--surface);
+      color: var(--text-dim);
+      font-size: 0.85rem;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      white-space: nowrap;
+    }
+
+    .pill:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    .pill.selected {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #fff;
+    }
+
+    /* Premium teaser */
+    .premium-teaser {
+      margin-top: 28px;
+      padding: 16px 18px;
+      border: 1px solid rgba(255, 215, 0, 0.22);
+      border-radius: var(--radius);
+      background: rgba(255, 215, 0, 0.04);
+    }
+
+    .premium-title {
+      font-size: 0.9rem;
+      font-weight: 700;
+      color: #ffd700;
+      margin-bottom: 6px;
+    }
+
+    .premium-features {
+      font-size: 0.78rem;
+      color: var(--text-dim);
+      line-height: 1.7;
+      margin-bottom: 12px;
+    }
+
+    .waitlist-row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .waitlist-input {
+      flex: 1;
+      padding: 8px 12px;
+      border-radius: var(--radius);
+      border: 1px solid var(--surface2);
+      background: var(--surface);
+      color: var(--text);
+      font-size: 0.85rem;
+      outline: none;
+      min-width: 0;
+    }
+
+    .waitlist-input:focus {
+      border-color: rgba(255, 215, 0, 0.5);
+    }
+
+    .btn-waitlist {
+      padding: 8px 16px;
+      background: rgba(255, 215, 0, 0.12);
+      color: #ffd700;
+      border: 1px solid rgba(255, 215, 0, 0.3);
+      border-radius: var(--radius);
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: background 0.15s;
+    }
+
+    .btn-waitlist:hover { background: rgba(255, 215, 0, 0.22); }
+
+    #waitlist-msg {
+      font-size: 0.75rem;
+      color: var(--success);
+      margin-top: 6px;
+    }
+
     /* ---------- CHAT SCREEN ---------- */
     #screen-chat {
       width: 100%;
@@ -285,6 +415,26 @@
 
     .btn-end:hover { background: rgba(248,113,113,0.1); }
 
+    /* Disconnect actions */
+    #disconnect-actions {
+      display: none;
+      flex-direction: column;
+      gap: 10px;
+      width: 100%;
+    }
+
+    #disconnect-actions .btn {
+      width: 100%;
+    }
+
+    .btn-reconnect {
+      background: var(--surface2);
+      color: var(--success);
+      border: 1px solid rgba(74, 222, 128, 0.3);
+    }
+
+    .btn-reconnect:hover { background: rgba(74, 222, 128, 0.08); }
+
     /* Error */
     #error-msg {
       display: none;
@@ -340,6 +490,60 @@
     <p class="note">By starting, you agree to our <a href="/tos.html" style="color:var(--accent);text-decoration:none;">Terms of Service</a></p>
   </div>
 
+  <!-- Prefs -->
+  <div id="screen-prefs" class="hidden">
+    <div class="prefs-header">
+      <div class="brand-sm">నెస్తమి కోసం</div>
+      <p style="color:var(--text-dim);font-size:0.9rem;margin-top:6px;">మీ preferences choose చేయండి</p>
+    </div>
+
+    <div class="pref-section">
+      <div class="pref-label">📍 Region</div>
+      <div class="pill-group" id="region-pills">
+        <button class="pill" data-region="hyderabad" onclick="selectRegion('hyderabad')">🏙️ Hyderabad</button>
+        <button class="pill" data-region="ap"        onclick="selectRegion('ap')">🌴 Andhra Pradesh</button>
+        <button class="pill" data-region="telangana" onclick="selectRegion('telangana')">🔶 Telangana</button>
+        <button class="pill" data-region="india"     onclick="selectRegion('india')">🇮🇳 India</button>
+        <button class="pill" data-region="international" onclick="selectRegion('international')">🌍 International</button>
+        <button class="pill selected" data-region="any" onclick="selectRegion('any')">🎲 Any</button>
+      </div>
+    </div>
+
+    <div class="pref-section">
+      <div class="pref-label">
+        💡 Interests
+        <span id="interest-count">0/3 selected</span>
+      </div>
+      <div class="pill-group" id="interest-pills">
+        <button class="pill" data-interest="movies"     onclick="toggleInterest('movies')">🎬 Movies</button>
+        <button class="pill" data-interest="music"      onclick="toggleInterest('music')">🎵 Music</button>
+        <button class="pill" data-interest="cricket"    onclick="toggleInterest('cricket')">🏏 Cricket</button>
+        <button class="pill" data-interest="tech"       onclick="toggleInterest('tech')">💻 Tech</button>
+        <button class="pill" data-interest="students"   onclick="toggleInterest('students')">📚 Students</button>
+        <button class="pill" data-interest="jobs"       onclick="toggleInterest('jobs')">💼 Jobs</button>
+        <button class="pill" data-interest="friendship" onclick="toggleInterest('friendship')">❤️ Friendship</button>
+        <button class="pill" data-interest="timepass"   onclick="toggleInterest('timepass')">😂 Timepass</button>
+      </div>
+    </div>
+
+    <button class="btn btn-primary" onclick="confirmPrefs()" style="margin-top:8px;">
+      Find My నెస్తమి →
+    </button>
+
+    <!-- Premium teaser -->
+    <div class="premium-teaser">
+      <div class="premium-title">✨ Nestham Premium — Coming Soon</div>
+      <div class="premium-features">
+        🎙️ AI Voice Gender Filter &nbsp;·&nbsp; ⚡ Priority Matching &nbsp;·&nbsp; ∞ Unlimited Skips
+      </div>
+      <div class="waitlist-row">
+        <input type="email" id="waitlist-email" class="waitlist-input" placeholder="your@email.com" />
+        <button class="btn-waitlist" onclick="joinWaitlist()">Join waitlist</button>
+      </div>
+      <div id="waitlist-msg" class="hidden">✓ You're on the list!</div>
+    </div>
+  </div>
+
   <!-- Mic permission request -->
   <div id="screen-perm" class="hidden">
     <div class="perm-icon">🎙️</div>
@@ -369,13 +573,20 @@
 
     <div class="timer" id="timer"></div>
 
-    <div class="controls">
+    <div class="controls" id="controls">
       <button class="btn btn-mute" id="btn-mute" onclick="toggleMute()">🔇 Mute</button>
       <button class="btn btn-skip" id="btn-skip" onclick="skip()">⏭ Skip</button>
       <button class="btn btn-end" id="btn-end" onclick="endSession()">✕ Stop</button>
     </div>
 
-    <div id="error-msg"></div>
+    <div id="disconnect-actions">
+      <button class="btn btn-reconnect" id="btn-reconnect" style="display:none;" onclick="doReconnect()">
+        ↩️ Reconnect (<span id="reconnect-countdown">60</span>s)
+      </button>
+      <button class="btn btn-primary" onclick="findNew()">⏭️ Find New నెస్తమి</button>
+    </div>
+
+    <div id="chat-error-msg" style="display:none;background:rgba(248,113,113,0.1);border:1px solid rgba(248,113,113,0.3);color:var(--danger);padding:12px 18px;border-radius:var(--radius);font-size:0.88rem;text-align:center;width:100%;"></div>
   </div>
 
   <audio id="remote-audio" autoplay playsinline></audio>
@@ -402,9 +613,15 @@
     let timerInterval = null;
     let timerStart = null;
 
+    // v2 state
+    let selectedRegion = 'any';
+    let selectedInterests = [];
+    let reconnectToken = null;
+    let reconnectCountdown = null;
+
     // ─── Screen helpers ───────────────────────────────────────────────────────
     function show(id) {
-      ['screen-landing', 'screen-perm', 'screen-chat'].forEach(s => {
+      ['screen-landing', 'screen-prefs', 'screen-perm', 'screen-chat'].forEach(s => {
         document.getElementById(s).style.display = s === id
           ? (id === 'screen-chat' ? 'flex' : 'block')
           : 'none';
@@ -424,6 +641,18 @@
       }
     }
 
+    function showChatError(msg) {
+      const el = document.getElementById('chat-error-msg');
+      el.style.display = 'block';
+      el.textContent = msg;
+    }
+
+    function clearChatError() {
+      const el = document.getElementById('chat-error-msg');
+      el.style.display = 'none';
+      el.textContent = '';
+    }
+
     function showError(msg) {
       const el = document.getElementById('error-msg');
       el.style.display = 'block';
@@ -434,6 +663,41 @@
       const el = document.getElementById('error-msg');
       el.style.display = 'none';
       el.textContent = '';
+    }
+
+    // ─── Chat screen layout helpers ───────────────────────────────────────────
+    function showChatControls() {
+      document.getElementById('controls').style.display = 'flex';
+      document.getElementById('disconnect-actions').style.display = 'none';
+      document.getElementById('btn-reconnect').style.display = 'none';
+      if (reconnectCountdown) {
+        clearInterval(reconnectCountdown);
+        reconnectCountdown = null;
+      }
+    }
+
+    function showDisconnectActions() {
+      document.getElementById('controls').style.display = 'none';
+      document.getElementById('disconnect-actions').style.display = 'flex';
+    }
+
+    function showReconnectButton() {
+      const btn = document.getElementById('btn-reconnect');
+      btn.style.display = '';
+      let countdown = 60;
+      const cntEl = document.getElementById('reconnect-countdown');
+      cntEl.textContent = countdown;
+      if (reconnectCountdown) clearInterval(reconnectCountdown);
+      reconnectCountdown = setInterval(() => {
+        countdown--;
+        cntEl.textContent = countdown;
+        if (countdown <= 0) {
+          clearInterval(reconnectCountdown);
+          reconnectCountdown = null;
+          btn.style.display = 'none';
+          reconnectToken = null;
+        }
+      }, 1000);
     }
 
     // ─── Timer ────────────────────────────────────────────────────────────────
@@ -453,9 +717,48 @@
       document.getElementById('timer').textContent = '';
     }
 
-    // ─── Landing → Perm ───────────────────────────────────────────────────────
+    // ─── Landing → Prefs ──────────────────────────────────────────────────────
     function startFlow() {
+      show('screen-prefs');
+    }
+
+    // ─── Prefs interactions ───────────────────────────────────────────────────
+    function selectRegion(region) {
+      selectedRegion = region;
+      document.querySelectorAll('#region-pills .pill').forEach(p => {
+        p.classList.toggle('selected', p.dataset.region === region);
+      });
+    }
+
+    function toggleInterest(interest) {
+      const idx = selectedInterests.indexOf(interest);
+      if (idx !== -1) {
+        selectedInterests.splice(idx, 1);
+      } else {
+        if (selectedInterests.length >= 3) return;
+        selectedInterests.push(interest);
+      }
+      document.querySelectorAll('#interest-pills .pill').forEach(p => {
+        p.classList.toggle('selected', selectedInterests.includes(p.dataset.interest));
+      });
+      document.getElementById('interest-count').textContent =
+        `${selectedInterests.length}/3 selected`;
+    }
+
+    function confirmPrefs() {
       show('screen-perm');
+    }
+
+    function joinWaitlist() {
+      const email = document.getElementById('waitlist-email').value.trim();
+      if (!email || !email.includes('@')) return;
+      const list = JSON.parse(localStorage.getItem('nestham_waitlist') || '[]');
+      if (!list.includes(email)) {
+        list.push(email);
+        localStorage.setItem('nestham_waitlist', JSON.stringify(list));
+      }
+      document.getElementById('waitlist-msg').classList.remove('hidden');
+      document.getElementById('waitlist-email').value = '';
     }
 
     // ─── Mic ─────────────────────────────────────────────────────────────────
@@ -491,23 +794,32 @@
     }
 
     // ─── WebSocket ────────────────────────────────────────────────────────────
-    function connectWS() {
-      clearError();
+    function connectWS(token = null) {
+      clearChatError();
       setStatus('waiting', 'వెతుకుతున్నాం...');
       stopTimer();
+      showChatControls();
 
       ws = new WebSocket(WS_URL);
 
       ws.onopen = () => {
-        ws.send(JSON.stringify({ type: 'join' }));
+        ws.send(JSON.stringify({
+          type: 'join',
+          payload: {
+            region: selectedRegion,
+            interests: selectedInterests,
+            reconnectToken: token,
+          },
+        }));
       };
 
       ws.onmessage = async (evt) => {
-        const { type, payload } = JSON.parse(evt.data);
-        await handleSignal(type, payload);
+        const msg = JSON.parse(evt.data);
+        const { type, payload, token: tok, message } = msg;
+        await handleSignal(type, payload, tok, message);
       };
 
-      ws.onerror = () => showError('Connection error. Retrying...');
+      ws.onerror = () => showChatError('Connection error. Retrying...');
 
       ws.onclose = () => {
         if (connected) {
@@ -517,7 +829,7 @@
     }
 
     // ─── Signaling ────────────────────────────────────────────────────────────
-    async function handleSignal(type, payload) {
+    async function handleSignal(type, payload, token, message) {
       switch (type) {
         case 'waiting':
           setStatus('waiting', 'వెతుకుతున్నాం...');
@@ -552,6 +864,15 @@
 
         case 'partner-disconnected':
           onPartnerGone();
+          break;
+
+        case 'reconnect-token':
+          reconnectToken = token;
+          showReconnectButton();
+          break;
+
+        case 'error':
+          showChatError(message || 'Server error');
           break;
       }
     }
@@ -608,20 +929,40 @@
     function onPartnerGone() {
       closePeer();
       stopTimer();
-      setStatus('disconnected', 'వెళ్ళిపోయాడు. మళ్ళీ వెతుకుదామా?');
+      setStatus('disconnected', 'వెళ్ళిపోయాడు.');
+      showDisconnectActions();
+    }
+
+    // ─── Disconnect screen actions ────────────────────────────────────────────
+    function findNew() {
+      if (reconnectCountdown) { clearInterval(reconnectCountdown); reconnectCountdown = null; }
+      reconnectToken = null;
+      if (ws) { ws.close(); ws = null; }
+      connectWS();
+    }
+
+    function doReconnect() {
+      if (reconnectCountdown) { clearInterval(reconnectCountdown); reconnectCountdown = null; }
+      const token = reconnectToken;
+      reconnectToken = null;
+      if (ws) { ws.close(); ws = null; }
+      connectWS(token);
     }
 
     // ─── Skip / Stop ──────────────────────────────────────────────────────────
     function skip() {
+      if (reconnectCountdown) { clearInterval(reconnectCountdown); reconnectCountdown = null; }
+      reconnectToken = null; // clear token on skip
       wsSend('disconnect', null);
       closePeer();
       stopTimer();
-      // Reconnect to find new partner
       if (ws) { ws.close(); ws = null; }
       connectWS();
     }
 
     function endSession() {
+      if (reconnectCountdown) { clearInterval(reconnectCountdown); reconnectCountdown = null; }
+      reconnectToken = null;
       wsSend('disconnect', null);
       closePeer();
       stopTimer();

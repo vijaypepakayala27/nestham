@@ -48,9 +48,34 @@ const ipJoinTimes = new Map();
 const DUAL_JOIN_WINDOW_MS = 10_000;
 
 // ─── Matchmaking state ────────────────────────────────────────────────────────
-let waitingUser = null;
+const waitingPool = []; // replaces single waitingUser
 const peers = new Map();
 let nextId = 1;
+
+// ─── Reconnect tokens ─────────────────────────────────────────────────────────
+// token -> { expires: timestamp }  (userIds no longer needed — matched by token on ws)
+const reconnectTokens = new Map();
+const RECONNECT_TTL_MS = 60_000;
+const RELAXED_WAIT_MS = 30_000;
+
+function genToken() {
+  const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+  return Array.from({ length: 6 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+}
+
+// Clean up expired reconnect tokens every 30 seconds
+setInterval(() => {
+  const now = Date.now();
+  for (const [token, data] of reconnectTokens) {
+    if (data.expires < now) reconnectTokens.delete(token);
+  }
+  // Also prune closed sockets from waitingPool
+  for (let i = waitingPool.length - 1; i >= 0; i--) {
+    if (waitingPool[i].readyState !== waitingPool[i].OPEN) {
+      waitingPool.splice(i, 1);
+    }
+  }
+}, 30_000);
 
 function genId() {
   return `user-${nextId++}`;
@@ -60,6 +85,84 @@ function send(ws, data) {
   if (ws.readyState === ws.OPEN) {
     ws.send(JSON.stringify(data));
   }
+}
+
+// ─── Matchmaking helpers ──────────────────────────────────────────────────────
+
+/**
+ * Find the best available match in waitingPool for `ws`.
+ * Priority: region+interest > region-only > interest-only > relaxed (30s wait) > any
+ * Returns the index in waitingPool, or -1 if no match.
+ */
+function findBestMatch(ws) {
+  const now = Date.now();
+  let regionInterest = -1;
+  let regionOnly = -1;
+  let interestOnly = -1;
+  let relaxedUser = -1;
+  let anyUser = -1;
+
+  for (let i = 0; i < waitingPool.length; i++) {
+    const c = waitingPool[i];
+    if (c === ws || c.readyState !== c.OPEN) continue;
+
+    // Candidate has been waiting > 30s — they match anyone
+    const cRelaxed = (now - c.joinTime) > RELAXED_WAIT_MS;
+    if (cRelaxed) {
+      if (relaxedUser === -1) relaxedUser = i;
+      continue;
+    }
+
+    const sameRegion =
+      ws.region === 'any' || c.region === 'any' || ws.region === c.region;
+    const sharedInterest =
+      ws.interests.length === 0 ||
+      c.interests.length === 0 ||
+      ws.interests.some(int => c.interests.includes(int));
+
+    if (sameRegion && sharedInterest && regionInterest === -1) {
+      regionInterest = i;
+    } else if (sameRegion && !sharedInterest && regionOnly === -1) {
+      regionOnly = i;
+    } else if (!sameRegion && sharedInterest && interestOnly === -1) {
+      interestOnly = i;
+    } else if (anyUser === -1) {
+      anyUser = i;
+    }
+  }
+
+  if (regionInterest !== -1) return regionInterest;
+  if (regionOnly !== -1) return regionOnly;
+  if (interestOnly !== -1) return interestOnly;
+  if (relaxedUser !== -1) return relaxedUser;
+  return anyUser;
+}
+
+/** Remove ws from waitingPool (safe no-op if not present). */
+function removeFromPool(ws) {
+  const idx = waitingPool.indexOf(ws);
+  if (idx !== -1) waitingPool.splice(idx, 1);
+}
+
+/** Pair a new joiner with an existing pool user. Pool user becomes caller. */
+function pairUsers(newUser, poolUser) {
+  removeFromPool(poolUser);
+  removeFromPool(newUser); // in case newUser was already in pool (reconnect edge case)
+
+  newUser.partnerId = poolUser.userId;
+  poolUser.partnerId = newUser.userId;
+
+  peers.set(newUser.userId, newUser);
+  peers.set(poolUser.userId, poolUser);
+
+  console.log(
+    `[~] ${ts()} Paired ${newUser.userId} (${maskIP(newUser.clientIp)}) <-> ` +
+    `${poolUser.userId} (${maskIP(poolUser.clientIp)})`
+  );
+
+  // Waiting user (pool) = caller; new joiner = callee
+  send(poolUser, { type: 'paired', payload: { role: 'caller' } });
+  send(newUser,  { type: 'paired', payload: { role: 'callee' } });
 }
 
 // ─── WebSocket connections ────────────────────────────────────────────────────
@@ -84,6 +187,10 @@ wss.on('connection', (ws, req) => {
   ws.userId = id;
   ws.partnerId = null;
   ws.clientIp = ip;
+  ws.region = 'any';
+  ws.interests = [];
+  ws.joinTime = null;
+  ws.reconnectToken = null;
 
   console.log(`[+] ${ts()} ${id} connected from ${masked}`);
 
@@ -99,16 +206,29 @@ wss.on('connection', (ws, req) => {
 
     switch (type) {
       case 'join': {
-        // Dual-connection detection: two joins from same IP within 10 s
         const now = Date.now();
+
+        // Parse v2 preferences from payload
+        const region       = payload?.region || 'any';
+        const interests    = Array.isArray(payload?.interests) ? payload.interests.slice(0, 3) : [];
+        const reconnectTok = payload?.reconnectToken || null;
+
+        ws.region         = region;
+        ws.interests      = interests;
+        ws.joinTime       = now;
+        ws.reconnectToken = reconnectTok;
+
+        // ── Dual-connection detection: two joins from same IP within 10 s ──
         const lastJoin = ipJoinTimes.get(ip);
         if (lastJoin !== undefined && now - lastJoin < DUAL_JOIN_WINDOW_MS) {
           console.warn(`[SUSPICIOUS] ${ts()} Dual join from ${masked} — disconnecting both`);
-          // Kick any other socket from this IP that is currently waiting
-          if (waitingUser && waitingUser.clientIp === ip && waitingUser !== ws) {
-            send(waitingUser, { type: 'error', message: 'Suspicious activity detected' });
-            waitingUser.close();
-            waitingUser = null;
+          // Kick any same-IP sockets currently in the pool
+          for (let i = waitingPool.length - 1; i >= 0; i--) {
+            if (waitingPool[i].clientIp === ip && waitingPool[i] !== ws) {
+              send(waitingPool[i], { type: 'error', message: 'Suspicious activity detected' });
+              waitingPool[i].close();
+              waitingPool.splice(i, 1);
+            }
           }
           send(ws, { type: 'error', message: 'Suspicious activity detected' });
           ws.close();
@@ -117,26 +237,36 @@ wss.on('connection', (ws, req) => {
         }
         ipJoinTimes.set(ip, now);
 
-        if (waitingUser && waitingUser.readyState === waitingUser.OPEN && waitingUser !== ws) {
-          // Pair them
-          const other = waitingUser;
-          waitingUser = null;
+        // ── 1. Reconnect token: match with the other half of a previous pair ──
+        if (reconnectTok && reconnectTokens.has(reconnectTok)) {
+          const tokenData = reconnectTokens.get(reconnectTok);
+          if (tokenData.expires > now) {
+            const otherIdx = waitingPool.findIndex(
+              u => u.reconnectToken === reconnectTok && u !== ws && u.readyState === u.OPEN
+            );
+            if (otherIdx !== -1) {
+              const other = waitingPool[otherIdx];
+              reconnectTokens.delete(reconnectTok);
+              console.log(`[↩] ${ts()} Reconnect pair: ${ws.userId} <-> ${other.userId}`);
+              pairUsers(ws, other);
+              return;
+            }
+            // Other half not in pool yet — enter pool with this token and wait
+          } else {
+            reconnectTokens.delete(reconnectTok);
+            ws.reconnectToken = null;
+          }
+        }
 
-          ws.partnerId = other.userId;
-          other.partnerId = ws.userId;
-
-          peers.set(ws.userId, ws);
-          peers.set(other.userId, other);
-
-          console.log(`[~] ${ts()} Paired ${ws.userId} (${masked}) <-> ${other.userId} (${maskIP(other.clientIp)})`);
-
-          // Waiting user becomes caller, newcomer becomes callee
-          send(other, { type: 'paired', role: 'caller' });
-          send(ws, { type: 'paired', role: 'callee' });
+        // ── 2–5. Find best match among waiting users ──
+        const matchIdx = findBestMatch(ws);
+        if (matchIdx !== -1) {
+          pairUsers(ws, waitingPool[matchIdx]);
         } else {
-          waitingUser = ws;
+          // ── 6. No match — join the waiting pool ──
+          waitingPool.push(ws);
           peers.set(ws.userId, ws);
-          console.log(`[?] ${ts()} ${id} (${masked}) waiting for partner`);
+          console.log(`[?] ${ts()} ${id} (${masked}) waiting (pool: ${waitingPool.length})`);
           send(ws, { type: 'waiting' });
         }
         break;
@@ -175,12 +305,18 @@ wss.on('connection', (ws, req) => {
 });
 
 function handleDisconnect(ws) {
-  if (waitingUser === ws) waitingUser = null;
+  removeFromPool(ws);
 
   if (ws.partnerId) {
     const partner = peers.get(ws.partnerId);
     if (partner) {
+      // Generate a reconnect token so both sides can find each other again
+      const token = genToken();
+      reconnectTokens.set(token, { expires: Date.now() + RECONNECT_TTL_MS });
+
       send(partner, { type: 'partner-disconnected' });
+      send(partner, { type: 'reconnect-token', token });
+      send(ws,      { type: 'reconnect-token', token }); // only reaches ws if still OPEN
       partner.partnerId = null;
     }
     ws.partnerId = null;
